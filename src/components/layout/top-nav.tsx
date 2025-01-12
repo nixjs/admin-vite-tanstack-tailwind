@@ -1,6 +1,6 @@
 import { Link } from '@tanstack/react-router'
 import { IconMenu } from '@tabler/icons-react'
-import { cn } from '@/lib/utils'
+// import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import {
   DropdownMenu,
@@ -18,7 +18,7 @@ interface TopNavProps extends React.HTMLAttributes<HTMLElement> {
   }[]
 }
 
-export function TopNav({ className, links, ...props }: TopNavProps) {
+export function TopNav({ links }: TopNavProps) {
   return (
     <>
       <div className='md:hidden'>
@@ -44,7 +44,7 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
         </DropdownMenu>
       </div>
 
-      <nav
+      {/* <nav
         className={cn(
           'hidden items-center space-x-4 md:flex lg:space-x-6',
           className
@@ -61,7 +61,7 @@ export function TopNav({ className, links, ...props }: TopNavProps) {
             {title}
           </Link>
         ))}
-      </nav>
+      </nav> */}
     </>
   )
 }

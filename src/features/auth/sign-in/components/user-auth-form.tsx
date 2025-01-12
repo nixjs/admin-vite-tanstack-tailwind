@@ -1,10 +1,16 @@
-import { HTMLAttributes, useState } from 'react'
-import { z } from 'zod'
+import React, { HTMLAttributes, useState } from 'react'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Link } from '@tanstack/react-router'
-import { IconBrandFacebook, IconBrandGithub } from '@tabler/icons-react'
+import { useMutation } from '@tanstack/react-query'
+import { router } from '@/app'
+import { LoginFormRequest } from '@/model/auth'
+import { Route } from '@/routes/(auth)/sign-in'
+import { LoginSchema } from '@/schema/auth'
+import useAuthStore from '@/stores/useAuthStore'
+import { decodeAccessToken } from '@/lib/jwt'
+// import { Link } from '@tanstack/react-router'
 import { cn } from '@/lib/utils'
+import { loginRequest } from '@/utils/axios/auth'
 import { Button } from '@/components/ui/button'
 import {
   Form,
@@ -19,40 +25,54 @@ import { PasswordInput } from '@/components/password-input'
 
 type UserAuthFormProps = HTMLAttributes<HTMLDivElement>
 
-const formSchema = z.object({
-  email: z
-    .string()
-    .min(1, { message: 'Please enter your email' })
-    .email({ message: 'Invalid email address' }),
-  password: z
-    .string()
-    .min(1, {
-      message: 'Please enter your password',
-    })
-    .min(7, {
-      message: 'Password must be at least 7 characters long',
-    }),
-})
-
 export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
   const [isLoading, setIsLoading] = useState(false)
+  const authState = useAuthStore()
+  const searchParam = Route.useSearch()
 
-  const form = useForm<z.infer<typeof formSchema>>({
-    resolver: zodResolver(formSchema),
+  const { mutate, isError, isSuccess, data } = useMutation({
+    mutationFn: ({
+      username,
+      password,
+    }: {
+      username: string
+      password: string
+    }) => {
+      return loginRequest(username, password)
+    },
+  })
+
+  const form = useForm<LoginFormRequest>({
+    resolver: zodResolver(LoginSchema),
     defaultValues: {
-      email: '',
+      username: '',
       password: '',
     },
   })
 
-  function onSubmit(data: z.infer<typeof formSchema>) {
-    setIsLoading(true)
-    // eslint-disable-next-line no-console
-    console.log(data)
+  React.useEffect(() => {
+    if (isSuccess && data) {
+      const { accessToken, refreshToken } = data
+      const decoded = decodeAccessToken<{
+        id: string
+        walletAddress: string
+        role: string
+      }>(accessToken)
+      if (decoded)
+        authState.setUser({
+          id: decoded.id,
+        })
+      authState.setAccessToken(accessToken)
+      authState.setRefreshToken(refreshToken)
+      router.navigate({ to: searchParam.redirect ?? '/' })
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data, isSuccess])
 
-    setTimeout(() => {
-      setIsLoading(false)
-    }, 3000)
+  function onSubmit(data: LoginFormRequest) {
+    setIsLoading(true)
+    mutate(data)
+    if (isError || isSuccess) setIsLoading(false)
   }
 
   return (
@@ -62,10 +82,10 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
           <div className='grid gap-2'>
             <FormField
               control={form.control}
-              name='email'
+              name='username'
               render={({ field }) => (
                 <FormItem className='space-y-1'>
-                  <FormLabel>Email</FormLabel>
+                  <FormLabel>username</FormLabel>
                   <FormControl>
                     <Input placeholder='name@example.com' {...field} />
                   </FormControl>
@@ -80,12 +100,12 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
                 <FormItem className='space-y-1'>
                   <div className='flex items-center justify-between'>
                     <FormLabel>Password</FormLabel>
-                    <Link
+                    {/* <Link
                       to='/forgot-password'
                       className='text-sm font-medium text-muted-foreground hover:opacity-75'
                     >
                       Forgot password?
-                    </Link>
+                    </Link> */}
                   </div>
                   <FormControl>
                     <PasswordInput placeholder='********' {...field} />
@@ -98,7 +118,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               Login
             </Button>
 
-            <div className='relative my-2'>
+            {/* <div className='relative my-2'>
               <div className='absolute inset-0 flex items-center'>
                 <span className='w-full border-t' />
               </div>
@@ -126,7 +146,7 @@ export function UserAuthForm({ className, ...props }: UserAuthFormProps) {
               >
                 <IconBrandFacebook className='h-4 w-4' /> Facebook
               </Button>
-            </div>
+            </div> */}
           </div>
         </form>
       </Form>

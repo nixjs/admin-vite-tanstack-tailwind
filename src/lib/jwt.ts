@@ -53,3 +53,10 @@ export function decodeAccessToken<T extends { [props: string]: any }>(
 export function setAuthorization(t: string) {
   return { authorization: t }
 }
+
+export const withHeaders = (accessToken?: string) => {
+  let headers = { 'Content-Type': 'application/json' }
+  if (accessToken)
+    headers = Object.assign(headers, { Authorization: `Bearer ${accessToken}` })
+  return headers
+}
